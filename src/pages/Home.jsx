@@ -17,7 +17,7 @@ const Home = () => {
         transition={{ duration: 0.5 }}
       >
         <h1 className="text-3xl md:text-4xl font-bold mb-6 text-center bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-          Welcome to CalcuSmart
+          Welcome to ICal
         </h1>
         
         <p className="text-center text-surface-600 dark:text-surface-300 mb-8 max-w-2xl mx-auto">
