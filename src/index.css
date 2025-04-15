@@ -32,6 +32,30 @@
   .calculator-key-clear {
     @apply bg-accent/10 dark:bg-accent/20 text-accent hover:bg-accent/20 dark:hover:bg-accent/30;
   }
+  
+  .calculator-key-scientific {
+    @apply bg-secondary-light/5 dark:bg-secondary-dark/10 text-secondary-dark dark:text-secondary-light hover:bg-secondary-light/15 dark:hover:bg-secondary-dark/20 text-sm;
+  }
+  
+  .calculator-mode-toggle {
+    @apply flex items-center p-1 rounded-lg border text-xs font-medium;
+  }
+  
+  .calculator-mode-option {
+    @apply py-1 px-3 rounded-md transition-colors duration-200;
+  }
+  
+  .calculator-mode-option-active {
+    @apply bg-primary text-white;
+  }
+  
+  .calculator-mode-option-inactive {
+    @apply text-surface-600 dark:text-surface-300 hover:bg-surface-100 dark:hover:bg-surface-700;
+  }
+  
+  .angle-mode-button {
+    @apply px-2 py-1 text-xs rounded-md transition-colors duration-200;
+  }
 }
 
 @layer utilities {
