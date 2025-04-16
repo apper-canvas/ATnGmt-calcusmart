@@ -15,6 +15,7 @@ const MainFeature = ({ onCalculate }) => {
   const [isCalculated, setIsCalculated] = useState(false)
   const [decimalPlaces, setDecimalPlaces] = useState(4)
   const [animateDisplay, setAnimateDisplay] = useState(false)
+  const [lastResult, setLastResult] = useState(null)  // To store the last numeric result
 
   // Save calculator type preference
   useEffect(() => {
@@ -30,6 +31,7 @@ const MainFeature = ({ onCalculate }) => {
       setDisplay(key)
       setExpression('')
       setIsCalculated(false)
+      setLastResult(null)
       return
     }
 
@@ -50,16 +52,35 @@ const MainFeature = ({ onCalculate }) => {
     }
 
     setLastOperation(op)
-    setExpression(display + ' ' + op + ' ')
+    // If we have a previous calculation result, use that numeric value
+    const displayValue = lastResult !== null ? lastResult : display
+    setExpression(displayValue + ' ' + op + ' ')
     setIsCalculated(true)
   }
 
   // Calculate result
   const calculate = () => {
     try {
-      let result
-      const currentNum = parseFloat(display)
-      const previousNum = parseFloat(expression.split(' ')[0])
+      let result;
+      // Get the current number from display
+      const currentNum = parseFloat(display.replace(/,/g, ''))
+      
+      // Get the previous number either from lastResult (if available) or from expression
+      let previousNum;
+      if (lastResult !== null) {
+        previousNum = lastResult;
+      } else {
+        // Extract the number from the expression and convert to number
+        const expressionParts = expression.split(' ');
+        previousNum = parseFloat(expressionParts[0].replace(/,/g, ''));
+      }
+
+      if (isNaN(previousNum) || isNaN(currentNum)) {
+        setDisplay('Error')
+        setExpression('')
+        setIsCalculated(true)
+        return
+      }
 
       switch (lastOperation) {
         case '+':
@@ -87,7 +108,10 @@ const MainFeature = ({ onCalculate }) => {
           result = currentNum
       }
 
-      // Format result
+      // Store the numeric result for future calculations
+      setLastResult(result)
+      
+      // Format result for display
       const formattedResult = formatNumber(result)
       
       // Update display and expression
@@ -107,9 +131,11 @@ const MainFeature = ({ onCalculate }) => {
       setIsCalculated(true)
       setLastOperation(null)
     } catch (error) {
+      console.error('Calculation error:', error)
       setDisplay('Error')
       setExpression('')
       setIsCalculated(true)
+      setLastResult(null)
     }
   }
 
@@ -130,6 +156,7 @@ const MainFeature = ({ onCalculate }) => {
     setExpression('')
     setLastOperation(null)
     setIsCalculated(false)
+    setLastResult(null)
   }
 
   // Clear entry
@@ -140,19 +167,21 @@ const MainFeature = ({ onCalculate }) => {
 
   // Memory functions
   const memoryStore = () => {
-    setMemory(parseFloat(display))
+    setMemory(parseFloat(display.replace(/,/g, '')))
   }
 
   const memoryRecall = () => {
     if (memory !== null) {
       setDisplay(memory.toString())
+      setLastResult(memory)
       setIsCalculated(true)
     }
   }
 
   const memoryAdd = () => {
     if (memory !== null) {
-      setMemory(memory + parseFloat(display))
+      const newMemory = memory + parseFloat(display.replace(/,/g, ''))
+      setMemory(newMemory)
     } else {
       memoryStore()
     }
@@ -164,7 +193,14 @@ const MainFeature = ({ onCalculate }) => {
 
   // Change sign
   const changeSign = () => {
-    setDisplay(display.startsWith('-') ? display.substring(1) : '-' + display)
+    if (display !== '0') {
+      const numValue = parseFloat(display.replace(/,/g, ''))
+      const newValue = -numValue
+      setDisplay(newValue.toString())
+      if (lastResult !== null) {
+        setLastResult(newValue)
+      }
+    }
   }
 
   // Keyboard support
@@ -206,7 +242,7 @@ const MainFeature = ({ onCalculate }) => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [display, expression, lastOperation, isCalculated, calculatorType])
+  }, [display, expression, lastOperation, isCalculated, calculatorType, lastResult])
 
   // Handle calculator toggle
   const handleToggleCalculator = (type) => {

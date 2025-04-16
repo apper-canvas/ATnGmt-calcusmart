@@ -16,6 +16,7 @@ const ScientificCalculator = ({ onCalculate, formatNumber, memory, setMemory, de
     return savedMode || 'DEG'
   })
   const [shift, setShift] = useState(false)
+  const [lastResult, setLastResult] = useState(null)  // To store last numeric result
 
   // Save angle mode preference
   useEffect(() => {
@@ -31,6 +32,7 @@ const ScientificCalculator = ({ onCalculate, formatNumber, memory, setMemory, de
       setDisplay(key)
       setExpression('')
       setIsCalculated(false)
+      setLastResult(null)
       return
     }
 
@@ -51,16 +53,36 @@ const ScientificCalculator = ({ onCalculate, formatNumber, memory, setMemory, de
     }
 
     setLastOperation(op)
-    setExpression(display + ' ' + op + ' ')
+    // Use the numeric lastResult if available
+    const displayValue = lastResult !== null ? lastResult : display
+    setExpression(displayValue + ' ' + op + ' ')
     setIsCalculated(true)
   }
 
   // Calculate result
   const calculate = () => {
     try {
-      let result
-      const currentNum = parseFloat(display)
-      const previousNum = parseFloat(expression.split(' ')[0])
+      let result;
+      // Get the current number from display
+      const currentNum = parseFloat(display.replace(/,/g, ''))
+      
+      // Get the previous number either from lastResult or expression
+      let previousNum;
+      if (lastResult !== null) {
+        previousNum = lastResult;
+      } else {
+        // Extract number from expression and convert to number
+        const expressionParts = expression.split(' ');
+        previousNum = parseFloat(expressionParts[0].replace(/,/g, ''));
+      }
+
+      if (isNaN(previousNum) || isNaN(currentNum)) {
+        setDisplay('Error')
+        setExpression('')
+        setIsCalculated(true)
+        setLastResult(null)
+        return
+      }
 
       switch (lastOperation) {
         case '+':
@@ -91,7 +113,10 @@ const ScientificCalculator = ({ onCalculate, formatNumber, memory, setMemory, de
           result = currentNum
       }
 
-      // Format result
+      // Store numeric result for future calculations
+      setLastResult(result)
+      
+      // Format result for display
       const formattedResult = formatNumber(result)
       
       // Update display and expression
@@ -111,17 +136,24 @@ const ScientificCalculator = ({ onCalculate, formatNumber, memory, setMemory, de
       setIsCalculated(true)
       setLastOperation(null)
     } catch (error) {
+      console.error('Calculation error:', error)
       setDisplay('Error')
       setExpression('')
       setIsCalculated(true)
+      setLastResult(null)
     }
   }
 
   // Perform scientific operations
   const performScientificOperation = (operation) => {
     try {
-      const value = parseFloat(display)
-      let result
+      const value = parseFloat(display.replace(/,/g, ''))
+      if (isNaN(value) && operation !== 'pi' && operation !== 'e') {
+        setDisplay('Error')
+        return
+      }
+
+      let result;
 
       // Convert degrees to radians if needed
       const angle = angleMode === 'DEG' && ['sin', 'cos', 'tan'].includes(operation) 
@@ -188,6 +220,9 @@ const ScientificCalculator = ({ onCalculate, formatNumber, memory, setMemory, de
           result = value
       }
 
+      // Store numeric result for future calculations
+      setLastResult(result)
+      
       // Format and display result
       setDisplay(formatNumber(result))
       setIsCalculated(true)
@@ -201,8 +236,10 @@ const ScientificCalculator = ({ onCalculate, formatNumber, memory, setMemory, de
         })
       }
     } catch (error) {
+      console.error('Scientific operation error:', error)
       setDisplay('Error')
       setIsCalculated(true)
+      setLastResult(null)
     }
   }
 
@@ -243,6 +280,7 @@ const ScientificCalculator = ({ onCalculate, formatNumber, memory, setMemory, de
     setExpression('')
     setLastOperation(null)
     setIsCalculated(false)
+    setLastResult(null)
   }
 
   // Clear entry
@@ -253,19 +291,26 @@ const ScientificCalculator = ({ onCalculate, formatNumber, memory, setMemory, de
 
   // Memory functions
   const memoryStore = () => {
-    setMemory(parseFloat(display))
+    const value = parseFloat(display.replace(/,/g, ''))
+    if (!isNaN(value)) {
+      setMemory(value)
+    }
   }
 
   const memoryRecall = () => {
     if (memory !== null) {
       setDisplay(memory.toString())
+      setLastResult(memory)
       setIsCalculated(true)
     }
   }
 
   const memoryAdd = () => {
     if (memory !== null) {
-      setMemory(memory + parseFloat(display))
+      const value = parseFloat(display.replace(/,/g, ''))
+      if (!isNaN(value)) {
+        setMemory(memory + value)
+      }
     } else {
       memoryStore()
     }
@@ -277,12 +322,23 @@ const ScientificCalculator = ({ onCalculate, formatNumber, memory, setMemory, de
 
   // Change sign
   const changeSign = () => {
-    setDisplay(display.startsWith('-') ? display.substring(1) : '-' + display)
+    if (display !== '0') {
+      const numValue = parseFloat(display.replace(/,/g, ''))
+      const newValue = -numValue
+      setDisplay(newValue.toString())
+      if (lastResult !== null) {
+        setLastResult(newValue)
+      }
+    }
   }
 
   // Handle backspace
   const handleBackspace = () => {
-    if (display.length === 1 || (display.length === 2 && display.startsWith('-'))) {
+    if (isCalculated) {
+      setDisplay('0')
+      setIsCalculated(false)
+      setLastResult(null)
+    } else if (display.length === 1 || (display.length === 2 && display.startsWith('-'))) {
       setDisplay('0')
     } else {
       setDisplay(display.slice(0, -1))
@@ -339,7 +395,7 @@ const ScientificCalculator = ({ onCalculate, formatNumber, memory, setMemory, de
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [display, expression, lastOperation, isCalculated, angleMode])
+  }, [display, expression, lastOperation, isCalculated, angleMode, lastResult])
 
   return (
     <>
